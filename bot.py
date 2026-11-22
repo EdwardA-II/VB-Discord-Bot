@@ -510,7 +510,7 @@ def parse_poll_event(title, posted_at):
     end_pm = end_period.upper() == "PM"
     try:
         start = datetime(year, int(month), int(day),
-                         int(start_hour) % 12 + 12 * start_pm, int(start_minute or 0))
+        int(start_hour) % 12 + 12 * start_pm, int(start_minute or 0))
     except ValueError:
         return None
     end = start.replace(hour=int(end_hour) % 12 + 12 * end_pm, minute=int(end_minute or 0))
@@ -739,9 +739,39 @@ async def post_event_reminders():
                 (event.id, hours_before),
             )
 
+# ---------------------------------
+# 9. Logging for disconnects and reconnects
+# ---------------------------------
+
+@bot.event
+async def on_disconnect():
+    global disconnect_time
+
+    if disconnect_time is None:
+        disconnect_time = datetime.now(timezone.utc)
+        print(f"DISCONNECTED at {disconnect_time.astimezone()}")
+
+@bot.event
+async def on_resumed():
+    global disconnect_time
+
+    now = datetime.now(timezone.utc)
+
+    if disconnect_time is not None:
+        duration = (now - disconnect_time).total_seconds()
+
+        print(
+            f"RECONNECTED after approximately "
+            f"{duration:.2f} seconds"
+        )
+
+        disconnect_time = None
+
+    else:
+        print(f"Discord session resumed at {now.astimezone()}")
 
 # ---------------------------------
-# 9. Start the bot
+# 10. Start the bot
 # ---------------------------------
 
 bot.run(TOKEN)
